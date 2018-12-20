@@ -37,6 +37,46 @@ class APIWork:
         return requests.post(self._base_url + "v1/create_new_employees",
                              json=json_cont)
 
+    def request_delete_employees(self, key, id):
+        print("KEK")
+        json_cont = {"key": key,
+                     "id": id
+                     }
+        print("KEK")
+        return requests.post(self._base_url + "v1/delete_employees",
+                             json=json_cont)
+
+    def request_update_employees(self, key, name, surname, email, phone, job, salary, dep_id, id):
+        print("KEK")
+        json_cont = {"key": key,
+                     "employees": [{
+                         "name": name,
+                         "surname": surname,
+                         "email": email,
+                         "phone": phone,
+                         "job": job,
+                         "salary": salary,
+                         "dep_id": dep_id,
+                         "id": id
+                     }]}
+        print("KEK")
+        return requests.post(self._base_url + "v1/update_employees",
+                             json=json_cont)
+
+    def request_get_employees_history(self, key):
+        print("KEK")
+        json_cont = {"key": key}
+        print("KEK")
+        return requests.post(self._base_url + "v1/get_employees_history",
+                             json=json_cont)
+
+    def request_logout(self, key):
+        print("KEK")
+        json_cont = {"key": key}
+        print("KEK")
+        return requests.post(self._base_url + "v1/logout",
+                             json=json_cont)
+
 
 apW = APIWork("localhost", 8081, "worst-api")
 public_key = apW.request_pubkey().text
@@ -44,4 +84,4 @@ private_key = apW.request_login("admin", "admin", public_key).text
 all_resp = apW.request_all_employees(private_key).text
 create_resp = apW.request_create_employees(private_key, "Tom", "Hardy", "ema@mail.ru", "7-999-777-66-77", "topman",
                                            3000, 3421)
-print(create_resp)
+print(create_resp.text)
