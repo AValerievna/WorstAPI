@@ -7,24 +7,41 @@ class APIWork:
         self._host = host
         self._port = port
         self._prefix = prefix
-
-    def get_response(self, request, req_params):
-        return requests.get(("http://%s:%d/%s/%s" % (self._host, self._port, self._prefix, request)), params=req_params)
+        self._base_url = "http://%s:%d/%s/" % (self._host, self._port, self._prefix)
 
     def request_pubkey(self):
-        return requests.get("http://%s:%d/%s/v1/pubkey" % (self._host, self._port, self._prefix))
+        return requests.get(self._base_url + "v1/pubkey")
 
     def request_login(self, username, password, public_key):
         req_params = {"username": username, "password": password, "key": public_key}
-        return requests.get("http://%s:%d/%s/v1/login" % (self._host, self._port, self._prefix), params=req_params)
+        return requests.get(self._base_url + "v1/login", params=req_params)
 
     def request_all_employees(self, key):
         json_cont = {"key": key}
-        return requests.post("http://%s:%d/%s/v1/get_all_employees" % (self._host, self._port, self._prefix), json_cont)
+        return requests.post(self._base_url + "v1/get_all_employees",
+                             json=json_cont)
+
+    def request_create_employees(self, key, name, surname, email, phone, job, salary, dep_id):
+        print("KEK")
+        json_cont = {"key": key,
+                     "employees": [{
+                         "name": name,
+                         "surname": surname,
+                         "email": email,
+                         "phone": phone,
+                         "job": job,
+                         "salary": salary,
+                         "dep_id": dep_id
+                     }]}
+        print("KEK")
+        return requests.post(self._base_url + "v1/create_new_employees",
+                             json=json_cont)
 
 
 apW = APIWork("localhost", 8081, "worst-api")
 public_key = apW.request_pubkey().text
 private_key = apW.request_login("admin", "admin", public_key).text
-print(private_key)
-print(apW.request_all_employees(private_key))
+all_resp = apW.request_all_employees(private_key).text
+create_resp = apW.request_create_employees(private_key, "Tom", "Hardy", "ema@mail.ru", "7-999-777-66-77", "topman",
+                                           3000, 3421)
+print(create_resp)
