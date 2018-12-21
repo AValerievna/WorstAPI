@@ -1,4 +1,3 @@
-# import cx_Oracle
 #
 # dsn = cx_Oracle.makedsn("localhost", 1521, service_name="xe")
 # conn = cx_Oracle.connect(user="HR", password="qwaszx12", dsn=dsn)
@@ -7,12 +6,19 @@
 # conn.close()
 from datetime import datetime
 
-import psycopg2
+import cx_Oracle
+
+
+# import psycopg2
 
 
 class DBWork:
+    # def __init__(self, user, password, host, port, db):
+    #     self._conn = psycopg2.connect(user=user, password=password, host=host, port=port, database=db)
+
     def __init__(self, user, password, host, port, db):
-        self._conn = psycopg2.connect(user=user, password=password, host=host, port=port, database=db)
+        dsn = cx_Oracle.makedsn(host, port, service_name=db)
+        self._conn = cx_Oracle.connect(user=user, password=password, dsn=dsn)
 
     def __enter__(self):
         return self
@@ -84,16 +90,21 @@ class DBWork:
         for row in all_rows_content:
             table_str = dict()
             for i in range(len(description)):
-                table_str.update({description[i].name: row[i]})
+                print(description[i][0])
+                # table_str.update({description[i].name: row[i]})
+                table_str.update({description[i][0]: row[i]})
             res.append(table_str)
         print(res)
         return res
 
 
-with DBWork("hr", "qwaszx12", "localhost", 5432, "hr_db") as dbw:
+# with DBWork("hr", "qwaszx12", "localhost", 5432, "hr_db") as dbw:
+
+
+with DBWork("HR", "qwaszx12", "localhost", 1521, "xe") as dbw:
     dbw.select_all_from_table('employees')
-    d = dbw.delete_from_table('jobs', {'job_id': 'aa', 'job_title': 'aaa aaaa',
-                                       'min_salary': 1488, 'max_salary': 14888})
-    print(d)
-    # dbw.insert_into_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
+    dbw.insert_into_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
     dbw.select_row_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
+    d = dbw.delete_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
+    print(d)
+    dbw.select_all_from_table('employees')
