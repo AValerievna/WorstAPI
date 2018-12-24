@@ -1,8 +1,7 @@
 import requests
 
 
-class APIWork:
-
+class APIWork(object):
 
     def __init__(self, host, port, prefix):
         self._host = host
@@ -10,19 +9,19 @@ class APIWork:
         self._prefix = prefix
         self._base_url = "http://%s:%d/%s/" % (self._host, self._port, self._prefix)
 
-    def request_pubkey(self):
+    def _request_pubkey(self):
         return requests.get(self._base_url + "v1/pubkey")
 
-    def request_login(self, username, password, public_key):
+    def _request_login(self, username, password, public_key):
         req_params = {"username": username, "password": password, "key": public_key}
         return requests.get(self._base_url + "v1/login", params=req_params)
 
-    def request_all_employees(self, key):
+    def _request_all_employees(self, key):
         json_cont = {"key": key}
         return requests.post(self._base_url + "v1/get_all_employees",
                              json=json_cont)
 
-    def request_create_employees(self, key, name, surname, email, phone, job, salary, dep_id):
+    def _request_create_employees(self, key, name, surname, email, phone, job, salary, dep_id):
         json_cont = {"key": key,
                      "employees": [{
                          "name": name,
@@ -36,16 +35,14 @@ class APIWork:
         return requests.post(self._base_url + "v1/create_new_employees",
                              json=json_cont)
 
-    def request_delete_employees(self, key, id):
-        print("KEK")
+    def _request_delete_employees(self, key, id):
         json_cont = {"key": key,
                      "id": id
                      }
-        print("KEK")
         return requests.post(self._base_url + "v1/delete_employees",
                              json=json_cont)
 
-    def request_update_employees(self, key, name, surname, email, phone, job, salary, dep_id, id):
+    def _request_update_employees(self, key, name, surname, email, phone, job, salary, dep_id, id):
         json_cont = {"key": key,
                      "employees": [{
                          "name": name,
@@ -60,23 +57,25 @@ class APIWork:
         return requests.post(self._base_url + "v1/update_employees",
                              json=json_cont)
 
-    def request_get_employees_history(self, key):
-        print("KEK")
+    def _request_get_employees_history(self, key):
         json_cont = {"key": key}
-        print("KEK")
         return requests.post(self._base_url + "v1/get_employee_history",
                              json=json_cont)
 
-    def request_logout(self, key):
+    def _request_logout(self, key):
         json_cont = {"key": key}
         return requests.post(self._base_url + "v1/logout",
                              json=json_cont)
 
 
 apW = APIWork("localhost", 8081, "worst-api")
-public_key = apW.request_pubkey().text
-private_key = apW.request_login("admin", "admin", public_key).text
-all_resp = apW.request_all_employees(private_key).text
+public_key = apW._request_pubkey().text
+
+private_key = apW._request_login("admin", "mau", public_key).text
+print(private_key)
+# private_key = apW._request_login("admin", "admin", public_key).text
+# print(private_key)
+# all_resp = apW._request_all_employees(private_key).text
 
 # create_resp = apW.request_create_employees(private_key, "Sam", "Hardy", "some@mail.ru", "7-999-777-66-77", "PU_MAN",
 #                                            3000, 30)
@@ -88,6 +87,6 @@ all_resp = apW.request_all_employees(private_key).text
 #                                            3000, 215)
 
 
-create_resp = apW.request_get_employees_history(private_key)
+# create_resp = apW._request_get_employees_history(private_key)
 
-print(create_resp.content)
+#print(create_resp.content)

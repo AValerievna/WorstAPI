@@ -12,7 +12,7 @@ import cx_Oracle
 # import psycopg2
 
 
-class DBWork:
+class DBWork(object):
     # def __init__(self, user, password, host, port, db):
     #     self._conn = psycopg2.connect(user=user, password=password, host=host, port=port, database=db)
 
