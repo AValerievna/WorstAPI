@@ -23,13 +23,15 @@ class DBWork(object):
     def __enter__(self):
         return self
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def close_conn(self):
         self._conn.close()
 
     def select_all_from_table(self, table_name):
         cur = self._conn.cursor()
         cur.execute("select * from %s" % table_name)
-        return self.get_result_from_cursor(cur)
+        res = self.get_result_from_cursor(cur)
+        cur.close()
+        return res
 
     def select_row_from_table(self, table_name, to_select_dict):
         cur = self._conn.cursor()
@@ -42,7 +44,9 @@ class DBWork(object):
                 select_query += " and "
             counter += 1
         cur.execute(select_query)
-        return DBWork.get_result_from_cursor(cur)
+        res = DBWork.get_result_from_cursor(cur)
+        cur.close()
+        return res
 
     def delete_from_table(self, table_name, to_delete_dict):
         cur = self._conn.cursor()
@@ -57,6 +61,16 @@ class DBWork(object):
         cur.execute(delete_query)
         rowcount = cur.rowcount
         self._conn.commit()
+        cur.close()
+        return rowcount
+
+    def delete_from_table_with_unique(self, table_name, to_delete_unique_colon, to_delete_unique_val, ):
+        cur = self._conn.cursor()
+        delete_query = "delete from %s where %s = '%s'" % (table_name, to_delete_unique_colon, to_delete_unique_val)
+        cur.execute(delete_query)
+        rowcount = cur.rowcount
+        self._conn.commit()
+        cur.close()
         return rowcount
 
     @staticmethod
@@ -77,9 +91,9 @@ class DBWork(object):
             cont.append(self._escape(value))
         insert_query += "values(%s)" % ', '.join(cont)
         cur.execute(insert_query)
-        print(insert_query)
         rowcount = cur.rowcount
         self._conn.commit()
+        cur.close()
         return rowcount
 
     @staticmethod
@@ -95,15 +109,29 @@ class DBWork(object):
                 table_str.update({description[i][0]: row[i]})
             res.append(table_str)
         return res
-    
+
 
 # with DBWork("hr", "qwaszx12", "localhost", 5432, "hr_db") as dbw:
 
 
-with DBWork("HR", "qwaszx12", "localhost", 1521, "xe") as dbw:
-    d = dbw.select_all_from_table('employees')
-    dbw.insert_into_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
-    dbw.select_row_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
-    dbw.delete_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
-    print(d)
-    dbw.select_all_from_table('employees')
+# #with DBWork("HR", "qwaszx12", "localhost", 1521, "xe") as dbw:
+#     d = dbw.select_all_from_table('employees')
+#     #dbw.insert_into_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
+#     dbw.select_row_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
+#     dbw.delete_from_table('employees', {"first_name": "Luis",
+#                                         "last_name": "Hardy",
+#                                         "email": "someeee@mail.ru",
+#                                         "phone_number": "7-999-777-66-77",
+#                                         "job_id": "PU_MAN",
+#                                         "salary": 3000,
+#                                         "department_id": 30})
+#     print(d)
+#     f = dbw.select_all_from_table('employees')
+#     print(f)
+
+dbw = DBWork("HR", "qwaszx12", "localhost", 1521, "xe")
+# #dbw.delete_from_table_with_unique("employees", "email", "some@mail.ru")
+# dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "215")
+# dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "215")
+# print(dbw.select_all_from_table('job_history'))
+print(dbw.select_all_from_table('employees'))
