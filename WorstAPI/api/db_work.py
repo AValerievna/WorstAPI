@@ -90,21 +90,20 @@ class DBWork(object):
         for row in all_rows_content:
             table_str = dict()
             for i in range(len(description)):
-                print(description[i][0])
+                # print(description[i][0])
                 # table_str.update({description[i].name: row[i]})
                 table_str.update({description[i][0]: row[i]})
             res.append(table_str)
-        print(res)
         return res
-
+    
 
 # with DBWork("hr", "qwaszx12", "localhost", 5432, "hr_db") as dbw:
 
 
 with DBWork("HR", "qwaszx12", "localhost", 1521, "xe") as dbw:
-    dbw.select_all_from_table('employees')
+    d = dbw.select_all_from_table('employees')
     dbw.insert_into_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
     dbw.select_row_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
-    d = dbw.delete_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
+    dbw.delete_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
     print(d)
     dbw.select_all_from_table('employees')

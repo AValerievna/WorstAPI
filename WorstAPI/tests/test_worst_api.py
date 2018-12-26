@@ -1,10 +1,12 @@
 import pytest
 
 from api.api import APIWork
+from api.db_work import DBWork
 
 
 class TestWorstApi(object):
     SUCCESS_CODE = "200"
+    ACCEPTED_CODE = "202"
     INTERVAL_SERVER_ERROR_CODE = "500"
     UNAUTHORIZED_CODE = "401"
     UNAUTHORIZED_TEXT = "Unauthorized"
@@ -16,12 +18,19 @@ class TestWorstApi(object):
     @pytest.fixture(scope="class", params=[
         ("localhost", 8081, "worst-api")
     ])
-    def setup_method(self, request):
+    def setup_api_worker(self, request):
         (host, port, prefix) = request.param
         return APIWork(host, port, prefix)
 
-    def test_req_public_key_success(self, setup_method):
-        api_worker = setup_method
+    @pytest.fixture(scope="class", params=[
+        ("HR", "qwaszx12", "localhost", 1521, "xe")
+    ])
+    def setup_db_worker(self, request):
+        (user, password, host, port, db) = request.param
+        return DBWork(user, password, host, port, db)
+
+    def test_req_public_key_success(self, setup_api_worker):
+        api_worker = setup_api_worker
         resp = api_worker._request_pubkey()
         assert self.SUCCESS_CODE in str(resp) and len(resp.text) == self.PUBLIC_KEY_LENGTH
 
@@ -34,8 +43,8 @@ class TestWorstApi(object):
         ("developer ", "some.content"),
         ("some_name", "some_passw")
     ])
-    def test_login_success(self, username, password, setup_method):
-        api_worker = setup_method
+    def test_login_success(self, username, password, setup_api_worker):
+        api_worker = setup_api_worker
         pub_key = api_worker._request_pubkey().text
         resp = api_worker._request_login(username, password, pub_key)
         resp_str = str(resp)
@@ -50,8 +59,8 @@ class TestWorstApi(object):
         ("admin", "admin", "some-key"),
         ("developer", "rer", "some_wrong.key")
     ])
-    def test_login_invalid_key(self, username, password, public_key, setup_method):
-        api_worker = setup_method
+    def test_login_invalid_key(self, username, password, public_key, setup_api_worker):
+        api_worker = setup_api_worker
         resp = api_worker._request_login(username, password, public_key)
         resp_str = str(resp)
         assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid args"
@@ -61,8 +70,8 @@ class TestWorstApi(object):
         ("developer", "developer"),
     ])
     @pytest.mark.xfail(reason="double login", strict=True)
-    def test_login_use_public_key_once(self, username, password, setup_method):
-        api_worker = setup_method
+    def test_login_use_public_key_once(self, username, password, setup_api_worker):
+        api_worker = setup_api_worker
         pub_key = api_worker._request_pubkey().text
         private_key = api_worker._request_login(username, password, pub_key).text
         api_worker._request_logout(private_key)
@@ -72,8 +81,8 @@ class TestWorstApi(object):
         ("admin", "admin"),
         ("developer", "developer"),
     ])
-    def test_login_use_private_key_several_times(self, username, password, setup_method):
-        api_worker = setup_method
+    def test_login_use_private_key_several_times(self, username, password, setup_api_worker):
+        api_worker = setup_api_worker
         pub_key = api_worker._request_pubkey().text
         private_key = api_worker._request_login(username, password, pub_key).text
         resp = api_worker._request_all_employees(private_key)
@@ -85,8 +94,8 @@ class TestWorstApi(object):
         ("admin", "admin"),
         ("developer", "developer"),
     ])
-    def test_get_all_employees_success(self, username, password, setup_method):
-        api_worker = setup_method
+    def test_get_all_employees_success(self, username, password, setup_api_worker):
+        api_worker = setup_api_worker
         pub_key = api_worker._request_pubkey().text
         private_key = api_worker._request_login(username, password, pub_key).text
         resp = api_worker._request_all_employees(private_key)
@@ -106,8 +115,36 @@ class TestWorstApi(object):
         ("admin", "admin"),
         ("developer", "developer"),
     ])
-    def test_get_all_employees_success(self, incorrect_key, setup_method):
-        api_worker = setup_method
+    def test_get_all_employees_bad_key(self, incorrect_key, setup_api_worker):
+        api_worker = setup_api_worker
         resp = api_worker._request_all_employees(incorrect_key)
         resp_str = str(resp)
         assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid args"
+
+    @pytest.mark.parametrize("username, password, name, surname, email, phone, job, salary, dep_id", [
+        ("admin", "admin", "Luis", "Hardy", "someeee@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
+    ])
+    def test_create_employees_accepted(self, username, password, name, surname, email, phone, job, salary, dep_id,
+                                       setup_api_worker, setup_db_worker):
+        api_worker = setup_api_worker
+
+        pub_key = api_worker._request_pubkey().text
+        private_key = api_worker._request_login(username, password, pub_key).text
+        resp = api_worker._request_create_employees(private_key, name, surname, email, phone, job, salary,
+                                                    dep_id)
+        resp_str = str(resp)
+        print(resp_str)
+        print(resp.text)
+        print(resp.content)
+        # json_cont = {
+        #                  "first_name": name,
+        #                  "last_name": surname,
+        #                  "email": email,
+        #                  "phone_number": phone,
+        #                  "job_id": job,
+        #                  "salary": salary,
+        #                  "department_id": dep_id
+        #              }
+        # with setup_db_worker as db_worker:
+        #     print(db_worker.select_row_from_table("employees", json_cont))
+        #     assert self.ACCEPTED_CODE in resp_str and db_worker.select_row_from_table("employees", json_cont) != [], "Invalid args"
