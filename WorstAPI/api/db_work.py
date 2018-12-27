@@ -59,7 +59,6 @@ class DBWork(object):
                 select_query += " and "
             counter += 1
         cur.execute(select_query)
-        print(cur.fetchall())
         res = cur.fetchall()[0][0]
         cur.close()
         return res
@@ -155,7 +154,7 @@ class DBWork(object):
 
 dbw = DBWork("HR", "qwaszx12", "localhost", 1521, "xe")
 # #dbw.delete_from_table_with_unique("employees", "email", "some@mail.ru")
-# dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "431")
-# dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "431")
-# print(dbw.select_all_from_table('job_history'))
+dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "645")
+dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "645")
+print(dbw.select_all_from_table('job_history'))
 print(dbw.select_all_from_table('employees'))

@@ -74,16 +74,15 @@ class TestWorstApi(object):
 
     @pytest.fixture(scope="function", params=[
         ("Hell", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        # ("Mau", "Motor", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        # ("Mau", "Hardy", "targ@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        # ("Mau", "Hardy", "ma888@mail.ru", "7-999-333-00-00", "PU_MAN", 3000, 30),
-        # ("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "FI_MGR", 3000, 30),
-        # ("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 5000, 30),
-        ("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 10)
+        ("Mau", "Motor", "ma88@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
+        ("Mau", "Hardy", "targ@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
+        ("Mau", "Hardy", "ma8888@mail.ru", "7-999-333-00-00", "PU_MAN", 3000, 30),
+        ("Mau", "Hardy", "ma88888@mail.ru", "7-999-777-66-77", "FI_MGR", 3000, 30),
+        ("Mau", "Hardy", "ma88888888@mail.ru", "7-999-777-66-77", "PU_MAN", 5000, 30),
+        ("Mau", "Hardy", "ma8@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 10)
     ])
     def user_obj_update_args(self, request, setup_db_worker):
         yield request.param
-        self.del_employee(request.param, setup_db_worker)
 
     @pytest.fixture(scope="function", params=[
         ("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
@@ -110,7 +109,8 @@ class TestWorstApi(object):
         print(db_worker.select_all_from_table("employees"))
         user_id = db_worker.select_single_value_from_table("employees", "employee_id", json_cont)
         yield user_id
-        self.del_employee(request.param, setup_db_worker)
+        db_worker.delete_from_table_with_unique("job_history", "employee_id", user_id)
+        db_worker.delete_from_table_with_unique("employees", "employee_id", user_id)
 
     @pytest.fixture(scope="function", params=[
         ("Mau", "Hardy", "some.mail", "7-999-777-66-77", "PU_MAN", 3000, "some"),
