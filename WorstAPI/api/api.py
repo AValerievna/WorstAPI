@@ -35,9 +35,9 @@ class APIWork(object):
         return requests.post(self._base_url + "v1/create_new_employees",
                              json=json_cont)
 
-    def request_delete_employees(self, key, id):
+    def request_delete_employees(self, key, user_id):
         json_cont = {"key": key,
-                     "id": id
+                     "id": user_id
                      }
         return requests.post(self._base_url + "v1/delete_employees",
                              json=json_cont)
@@ -67,17 +67,18 @@ class APIWork(object):
         return requests.post(self._base_url + "v1/logout",
                              json=json_cont)
 
-# apW = APIWork("localhost", 8081, "worst-api")
-# public_key = apW.request_pubkey().text
+
+apW = APIWork("localhost", 8081, "worst-api")
+public_key = apW.request_pubkey().text
 #
 # private_key = apW._request_login("admin", "mau", public_key).text
 # print(private_key)
-# private_key = apW._request_login("admin", "admin", public_key).text
+private_key = apW.request_login("admin", "admin", public_key).text
 # print(private_key)
 # all_resp = apW._request_all_employees(private_key).text
 
-# create_resp = apW.request_create_employees(private_key, "Sam", "Hardy", "some@mail.ru", "7-999-777-66-77", "PU_MAN",
-#                                            3000, 30)
+create_resp = apW.request_create_employees(private_key, "Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN",
+                                           3000, 30)
 # create_resp = apW.request_create_employees(private_key, "Tom", "Hardy", "ema@mail.ru", "7-999-777-66-77", "PU_MAN",
 #                                            3000, 30)
 # create_resp = apW.request_update_employees(private_key, "R", "F", "cusww@mail.ru", "444", "ST_CLERK",
@@ -88,4 +89,4 @@ class APIWork(object):
 
 # create_resp = apW._request_get_employees_history(private_key)
 
-#print(create_resp.content)
+print(create_resp.content)

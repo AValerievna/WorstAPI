@@ -48,6 +48,30 @@ class DBWork(object):
         cur.close()
         return res
 
+    def select_single_value_from_table(self, table_name, colon_name, to_select_dict):
+        cur = self._conn.cursor()
+        select_query = "select %s from %s where " % (colon_name, table_name)
+        counter = 0
+        for i in to_select_dict:
+            value = to_select_dict[i]
+            select_query += "%s = %s" % (i, self._escape(value))
+            if counter != len(to_select_dict) - 1:
+                select_query += " and "
+            counter += 1
+        cur.execute(select_query)
+        print(cur.fetchall())
+        res = cur.fetchall()[0][0]
+        cur.close()
+        return res
+
+    def select_single_colon_from_table(self, table_name, single_colon_name):
+        cur = self._conn.cursor()
+        select_query = "select %s from %s" % (single_colon_name, table_name)
+        cur.execute(select_query)
+        res = DBWork.get_result_from_cursor(cur)
+        cur.close()
+        return res
+
     def delete_from_table(self, table_name, to_delete_dict):
         cur = self._conn.cursor()
         delete_query = "delete from %s where " % table_name
@@ -131,7 +155,7 @@ class DBWork(object):
 
 dbw = DBWork("HR", "qwaszx12", "localhost", 1521, "xe")
 # #dbw.delete_from_table_with_unique("employees", "email", "some@mail.ru")
-# dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "215")
-# dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "215")
+# dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "431")
+# dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "431")
 # print(dbw.select_all_from_table('job_history'))
 print(dbw.select_all_from_table('employees'))
