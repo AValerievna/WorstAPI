@@ -1,0 +1,6 @@
+class HttpResponseData(object):
+    SUCCESS_CODE = 200
+    ACCEPTED_CODE = 202
+    INTERVAL_SERVER_ERROR_CODE = 500
+    UNAUTHORIZED_CODE = 401
+    UNAUTHORIZED_TEXT = "Unauthorized"

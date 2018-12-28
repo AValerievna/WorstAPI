@@ -4,7 +4,7 @@
 # print("Kek")
 # print(conn.version)
 # conn.close()
-from datetime import datetime
+from datetime import date
 
 import cx_Oracle
 
@@ -48,6 +48,15 @@ class DBWork(object):
         cur.close()
         return res
 
+    def select_row_with_unique_value(self, table_name, unique_value_name, unique_value_value):
+        cur = self._conn.cursor()
+        select_query = "select * from %s where %s = %s" % (table_name, unique_value_name,
+                                                           self._escape(unique_value_value))
+        cur.execute(select_query)
+        res = DBWork.get_result_from_cursor(cur)
+        cur.close()
+        return res
+
     def select_single_value_from_table(self, table_name, colon_name, to_select_dict):
         cur = self._conn.cursor()
         select_query = "select %s from %s where " % (colon_name, table_name)
@@ -67,7 +76,16 @@ class DBWork(object):
         cur = self._conn.cursor()
         select_query = "select %s from %s" % (single_colon_name, table_name)
         cur.execute(select_query)
+        print(cur)
         res = DBWork.get_result_from_cursor(cur)
+        cur.close()
+        return res
+
+    def select_sequence_element(self, seq_name):
+        cur = self._conn.cursor()
+        select_query = "select %s.nextval from dual" % seq_name
+        cur.execute(select_query)
+        res = cur.fetchall()[0][0]
         cur.close()
         return res
 
@@ -100,8 +118,8 @@ class DBWork(object):
     def _escape(data):
         if type(data) is str:
             return "'%s'" % data
-        elif type(data) is datetime:
-            return "'%s'" % data.isofomat()
+        elif type(data) is date:
+            return "DATE '%s'" % data.isoformat()
         else:
             return "%d" % data
 
@@ -154,7 +172,22 @@ class DBWork(object):
 
 dbw = DBWork("HR", "qwaszx12", "localhost", 1521, "xe")
 # #dbw.delete_from_table_with_unique("employees", "email", "some@mail.ru")
-dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "645")
-dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "645")
-print(dbw.select_all_from_table('job_history'))
+
+emp_id = dbw.select_sequence_element("employees_seq")
+json_cont = {
+    "employee_id": emp_id,
+    "first_name": "Pop",
+    "last_name": "Drop",
+    "email": "skinny@mai;.ru",
+    "phone_number": "00-00",
+    "hire_date": date.today(),
+    "job_id": "PU_MAN",
+    "salary": 666,
+    "department_id": 10
+}
+# dbw.insert_into_table("employees", json_cont)
+dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "1015")
+dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "1015")
+# print(dbw.select_sequence_element("employees_seq"))
+# print(dbw.select_all_from_table('job_history'))
 print(dbw.select_all_from_table('employees'))

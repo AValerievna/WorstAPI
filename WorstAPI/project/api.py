@@ -12,8 +12,8 @@ class APIWork(object):
     def request_pubkey(self):
         return requests.get(self._base_url + "v1/pubkey")
 
-    def request_login(self, username, password, public_key):
-        req_params = {"username": username, "password": password, "key": public_key}
+    def request_login(self, username, password, pub_key):
+        req_params = {"username": username, "password": password, "key": pub_key}
         return requests.get(self._base_url + "v1/login", params=req_params)
 
     def request_all_employees(self, key):
@@ -68,17 +68,17 @@ class APIWork(object):
                              json=json_cont)
 
 
-apW = APIWork("localhost", 8081, "worst-api")
+apW = APIWork("localhost", 8081, "worst-project")
 public_key = apW.request_pubkey().text
-#
+
 # private_key = apW._request_login("admin", "mau", public_key).text
 # print(private_key)
 private_key = apW.request_login("admin", "admin", public_key).text
 # print(private_key)
 # all_resp = apW._request_all_employees(private_key).text
 
-# create_resp = apW.request_create_employees(private_key, "Mau", "Hardy", "ma@mail.ru", "7-999-777-66-77", "PU_MAN",
-#                                           3000, 30)
+create_resp = apW.request_create_employees(private_key, "Mau", "Hardy", "ma@mail.ru", "7-999-777-66-77", "PU_MAN",
+                                           3000, 30)
 # create_resp = apW.request_create_employees(private_key, "Tom", "Hardy", "ema@mail.ru", "7-999-777-66-77", "PU_MAN",
 #                                            3000, 30)
 # create_resp = apW.request_update_employees(private_key, "R", "F", "cusww@mail.ru", "444", "ST_CLERK",
@@ -89,4 +89,4 @@ private_key = apW.request_login("admin", "admin", public_key).text
 
 # create_resp = apW._request_get_employees_history(private_key)
 
-#print(create_resp.content)
+print(create_resp.content)

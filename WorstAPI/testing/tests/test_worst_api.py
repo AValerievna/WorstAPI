@@ -1,16 +1,13 @@
+from datetime import date
+
 import pytest
 
-from api.api import APIWork
-from api.db_work import DBWork
+from project.api import APIWork
+from project.http_response_data_class import HttpResponseData
+from testing.utils.db_work import DBWork
 
 
 class TestWorstApi(object):
-    SUCCESS_CODE = "200"
-    ACCEPTED_CODE = "202"
-    INTERVAL_SERVER_ERROR_CODE = "500"
-    UNAUTHORIZED_CODE = "401"
-    UNAUTHORIZED_TEXT = "Unauthorized"
-
     PUBLIC_KEY_LENGTH = 36
     PRIVATE_KEY_LENGTH = 64
     DEVELOPER_KEY_LENGTH = 76
@@ -47,6 +44,12 @@ class TestWorstApi(object):
         ("developer", "developer")
     ])
     def user_dev_key(self, request, setup_api_worker):
+        return self.get_key(request.param, setup_api_worker)
+
+    @pytest.fixture(scope="function", params=[
+        ("user", "user")
+    ])
+    def user_key(self, request, setup_api_worker):
         return self.get_key(request.param, setup_api_worker)
 
     @staticmethod
@@ -87,30 +90,26 @@ class TestWorstApi(object):
     @pytest.fixture(scope="function", params=[
         ("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
     ])
-    def user_obj_delete_valid_args(self, request, valid_private_key, setup_api_worker, setup_db_worker):
-        api_worker = setup_api_worker
-        private_key = valid_private_key
+    def user_obj_delete_valid_args(self, request, setup_db_worker):
+        db_worker = setup_db_worker
         (name, surname, email, phone, job, salary, dep_id) = request.param
 
-        print(request.param)
-        api_worker.request_create_employees(private_key, name, surname, email, phone, job, salary, dep_id)
-
+        emp_id = db_worker.select_sequence_element("employees_seq")
         json_cont = {
+            "employee_id": emp_id,
             "first_name": name,
             "last_name": surname,
             "email": email,
             "phone_number": phone,
+            "hire_date": date.today(),
             "job_id": job,
             "salary": salary,
             "department_id": dep_id
         }
-
-        db_worker = setup_db_worker
-        print(db_worker.select_all_from_table("employees"))
-        user_id = db_worker.select_single_value_from_table("employees", "employee_id", json_cont)
-        yield user_id
-        db_worker.delete_from_table_with_unique("job_history", "employee_id", user_id)
-        db_worker.delete_from_table_with_unique("employees", "employee_id", user_id)
+        db_worker.insert_into_table("employees", json_cont)
+        yield emp_id
+        db_worker.delete_from_table_with_unique("job_history", "employee_id", emp_id)
+        db_worker.delete_from_table_with_unique("employees", "employee_id", emp_id)
 
     @pytest.fixture(scope="function", params=[
         ("Mau", "Hardy", "some.mail", "7-999-777-66-77", "PU_MAN", 3000, "some"),
@@ -144,7 +143,7 @@ class TestWorstApi(object):
         api_worker = setup_api_worker
 
         resp = api_worker.request_pubkey()
-        assert self.SUCCESS_CODE in str(resp) and len(resp.text) == self.PUBLIC_KEY_LENGTH
+        assert resp.status_code == HttpResponseData.SUCCESS_CODE and len(resp.text) == self.PUBLIC_KEY_LENGTH
 
     @pytest.mark.parametrize("username,password", [
         ("admin", "admin"),
@@ -160,13 +159,13 @@ class TestWorstApi(object):
 
         pub_key = api_worker.request_pubkey().text
         resp = api_worker.request_login(username, password, pub_key)
-        resp_str = str(resp)
         private_key = resp.text
-        assert ((self.SUCCESS_CODE in resp_str
+        assert ((resp.status_code == HttpResponseData.SUCCESS_CODE
                  and len(private_key) == self.DEVELOPER_KEY_LENGTH
                  and username == "developer"
                  or len(private_key) == self.PRIVATE_KEY_LENGTH)
-                or (self.UNAUTHORIZED_CODE in resp_str and self.UNAUTHORIZED_TEXT in resp.text)), "Invalid login method"
+                or (resp.status_code == HttpResponseData.UNAUTHORIZED_CODE
+                    and resp.status_code == HttpResponseData.UNAUTHORIZED_TEXT)), "Invalid login method"
 
     def test_login_invalid_key(self, invalid_key_args, user_pwd_args, setup_api_worker):
         invalid_key = invalid_key_args
@@ -174,10 +173,8 @@ class TestWorstApi(object):
         api_worker = setup_api_worker
 
         resp = api_worker.request_login(username, password, invalid_key)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid login method"
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid login method with invalid key"
 
-    @pytest.mark.xfail(reason="double login", strict=True)
     def test_login_use_public_key_once(self, user_pwd_args, setup_api_worker):
         (username, password) = user_pwd_args
         api_worker = setup_api_worker
@@ -185,7 +182,8 @@ class TestWorstApi(object):
         pub_key = api_worker.request_pubkey().text
         private_key = api_worker.request_login(username, password, pub_key).text
         api_worker.request_logout(private_key)
-        private_key = api_worker.request_login(username, password, pub_key).text
+        resp = api_worker.request_login(username, password, pub_key)
+        assert resp.status_code != HttpResponseData.SUCCESS_CODE, "Invalid login method with double used public key"
 
     def test_login_use_private_key_several_times(self, user_pwd_args, setup_api_worker):
         (username, password) = user_pwd_args
@@ -203,10 +201,9 @@ class TestWorstApi(object):
         api_worker = setup_api_worker
 
         resp = api_worker.request_all_employees(private_key)
-        resp_str = str(resp.json)
         resp_json_arr = resp.json()
         for json_obj in resp_json_arr:
-            assert self.SUCCESS_CODE in resp_str \
+            assert resp.status_code == HttpResponseData.SUCCESS_CODE \
                    and "surname" in json_obj \
                    and "phone" in json_obj \
                    and "job_id" in json_obj \
@@ -220,8 +217,7 @@ class TestWorstApi(object):
         api_worker = setup_api_worker
 
         resp = api_worker.request_all_employees(invalid_key)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid get_all_employees"
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid get_all_employees"
 
     def test_create_employees_accepted(self, user_obj_create_valid_args, valid_private_key, setup_api_worker,
                                        setup_db_worker):
@@ -231,7 +227,6 @@ class TestWorstApi(object):
 
         resp = api_worker.request_create_employees(private_key, name, surname, email, phone, job, salary,
                                                    dep_id)
-        resp_str = str(resp)
         json_cont = {
             "first_name": name,
             "last_name": surname,
@@ -243,8 +238,8 @@ class TestWorstApi(object):
         }
         db_worker = setup_db_worker
         selected_value = db_worker.select_row_from_table("employees", json_cont)
-        assert self.ACCEPTED_CODE in resp_str and selected_value != [] and len(selected_value) == 1, "Invalid create " \
-                                                                                                     "new employees"
+        assert resp.status_code == HttpResponseData.ACCEPTED_CODE and selected_value != [] \
+               and len(selected_value) == 1, "Invalid create new employees"
 
     def test_create_employees_invalid_key(self, invalid_key_args, user_obj_create_valid_args, setup_api_worker):
         (name, surname, email, phone, job, salary, dep_id) = user_obj_create_valid_args
@@ -253,8 +248,7 @@ class TestWorstApi(object):
 
         resp = api_worker.request_create_employees(invalid_key, name, surname, email, phone, job, salary,
                                                    dep_id)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid create new employees"
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid create new employees"
 
     @pytest.mark.parametrize("sec_name, sec_surname, sec_phone, sec_job, sec_salary, sec_dep_id", [
         ("Mau", "Hardy", "7-999-777-66-77", "PU_MAN", 3000, 30)
@@ -270,8 +264,7 @@ class TestWorstApi(object):
         resp = api_worker.request_create_employees(private_key, sec_name, sec_surname, email, sec_phone, sec_job,
                                                    sec_salary,
                                                    sec_dep_id)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid create new employees"
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid create new employees"
 
     def test_create_employees_invalid_args(self, user_obj_create_invalid_args, valid_private_key, setup_api_worker):
         (name, surname, email, phone, job, salary, dep_id) = user_obj_create_invalid_args
@@ -282,20 +275,22 @@ class TestWorstApi(object):
                                                    dep_id)
         resp_str = str(resp)
         print(resp_str)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid create new employees"
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid create new employees with " \
+                                                                                "invalid args"
 
     def test_delete_employees_invalid_key(self, user_obj_delete_valid_args, invalid_key_args, valid_private_key,
                                           setup_api_worker):
+        login_fact = valid_private_key
         invalid_key = invalid_key_args
         api_worker = setup_api_worker
-        user_id = user_obj_delete_valid_args
+        emp_id = user_obj_delete_valid_args
 
-        resp = api_worker.request_delete_employees(invalid_key, user_id)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid create new employees"
+        resp = api_worker.request_delete_employees(invalid_key, emp_id)
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid delete employees"
 
     def test_delete_employees_employee_not_exists(self, user_obj_delete_valid_args, valid_private_key, setup_api_worker,
                                                   setup_db_worker):
+        login_fact = valid_private_key
         private_key = valid_private_key
         api_worker = setup_api_worker
         user_id = user_obj_delete_valid_args
@@ -303,30 +298,29 @@ class TestWorstApi(object):
         db_worker = setup_db_worker
         db_worker.delete_from_table_with_unique("employees", "employee_id", user_id)
         resp = api_worker.request_delete_employees(private_key, user_id)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid create new employees"
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid delete employees"
 
     def test_delete_employees_develop_user_key(self, user_obj_delete_valid_args, user_dev_key, setup_api_worker,
-                                               setup_db_worker):
+                                               valid_private_key, setup_db_worker):
+        login_fact = valid_private_key
         private_key = user_dev_key
         user_id = user_obj_delete_valid_args
         api_worker = setup_api_worker
 
         resp = api_worker.request_delete_employees(private_key, user_id)
-        resp_str = str(resp)
-        assert self.UNAUTHORIZED_CODE in resp_str, "Invalid create new employees"
+        assert resp.status_code == HttpResponseData.UNAUTHORIZED_CODE, "Invalid delete employees"
 
     def test_update_employees_invalid_key(self, user_obj_update_args, user_obj_delete_valid_args, invalid_key_args,
                                           valid_private_key, setup_api_worker):
         (name, surname, email, phone, job, salary, dep_id) = user_obj_update_args
+        login_fact = valid_private_key
         invalid_key = invalid_key_args
         api_worker = setup_api_worker
-        user_id = user_obj_delete_valid_args
+        emp_id = user_obj_delete_valid_args
 
         resp = api_worker.request_update_employees(invalid_key, name, surname, email, phone, job, salary,
-                                                   dep_id, user_id)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid create new employees"
+                                                   dep_id, emp_id)
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid update employees"
 
     def test_update_employees_employee_not_exists(self, user_obj_update_args, user_obj_delete_valid_args,
                                                   valid_private_key, setup_api_worker,
@@ -340,17 +334,75 @@ class TestWorstApi(object):
         db_worker.delete_from_table_with_unique("employees", "employee_id", user_id)
         resp = api_worker.request_update_employees(private_key, name, surname, email, phone, job, salary,
                                                    dep_id, user_id)
-        resp_str = str(resp)
-        assert self.INTERVAL_SERVER_ERROR_CODE in resp_str, "Invalid create new employees"
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid update employees"
 
-    def test_update_employees_develop_user_key(self, user_obj_delete_valid_args, user_obj_update_args, user_dev_key,
-                                               setup_api_worker, setup_db_worker):
+    def test_update_employees_success(self, user_obj_delete_valid_args, user_obj_update_args, valid_private_key,
+                                      setup_api_worker, setup_db_worker):
         (name, surname, email, phone, job, salary, dep_id) = user_obj_update_args
-        private_key = user_dev_key
-        user_id = user_obj_delete_valid_args
+        private_key = valid_private_key
+        emp_id = user_obj_delete_valid_args
         api_worker = setup_api_worker
 
         resp = api_worker.request_update_employees(private_key, name, surname, email, phone, job, salary,
-                                                   dep_id, user_id)
-        resp_str = str(resp)
-        assert self.UNAUTHORIZED_CODE in resp_str, "Invalid create new employees"
+                                                   dep_id, emp_id)
+        json_cont = {
+            "first_name": name,
+            "last_name": surname,
+            "email": email,
+            "phone_number": phone,
+            "job_id": job,
+            "salary": salary,
+            "department_id": dep_id
+        }
+        db_worker = setup_db_worker
+        selected_value = db_worker.select_row_from_table("employees", json_cont)
+        print(selected_value)
+        assert resp.status_code == HttpResponseData.ACCEPTED_CODE and selected_value != [] \
+               and len(selected_value) == 1, "Invalid update employees"
+
+    def test_update_employees_develop_user_key(self, user_obj_delete_valid_args, user_obj_update_args, user_key,
+                                               setup_api_worker, setup_db_worker):
+        (name, surname, email, phone, job, salary, dep_id) = user_obj_update_args
+        private_key = user_key
+        emp_id = user_obj_delete_valid_args
+        api_worker = setup_api_worker
+
+        resp = api_worker.request_update_employees(private_key, name, surname, email, phone, job, salary,
+                                                   dep_id, emp_id)
+        assert resp.status_code == HttpResponseData.UNAUTHORIZED_CODE, "Invalid update employees"
+
+    def test_get_employee_history_success(self, valid_private_key, setup_api_worker):
+        private_key = valid_private_key
+        api_worker = setup_api_worker
+
+        resp = api_worker.request_get_employees_history(private_key)
+        resp_json_arr = resp.json()
+        for json_obj in resp_json_arr:
+            assert resp.status_code == HttpResponseData.SUCCESS_CODE \
+                   and "end_date" in json_obj \
+                   and "dep_id" in json_obj \
+                   and "job_id" in json_obj \
+                   and "id" in json_obj \
+                   and "start_date" in json_obj, "Invalid get employee history"
+
+    def test_get_employee_history_user_key(self, user_key, setup_api_worker):
+        private_key = user_key
+        api_worker = setup_api_worker
+
+        resp = api_worker.request_get_employees_history(private_key)
+        assert resp.status_code == HttpResponseData.UNAUTHORIZED_CODE, "Invalid get employee history"
+
+    def test_logout_success(self, valid_private_key, setup_api_worker):
+        private_key = valid_private_key
+        api_worker = setup_api_worker
+
+        resp = api_worker.request_logout(private_key)
+        assert resp.status_code == HttpResponseData.SUCCESS_CODE, "Invalid logout method"
+
+    def test_logout_invalid_key(self, valid_private_key, invalid_key_args, user_pwd_args, setup_api_worker):
+        login_fact = valid_private_key
+        invalid_key = invalid_key_args
+        api_worker = setup_api_worker
+
+        resp = api_worker.request_logout(invalid_key)
+        assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid logout method"
