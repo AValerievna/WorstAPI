@@ -1,9 +1,8 @@
-from datetime import date
-
 import pytest
 from hamcrest import *
 
 from project.api import APIWork
+from project.employee_class import Employee
 from project.http_response_data_class import HttpResponseData
 from testing.utils.db_work import DBWork
 
@@ -85,74 +84,54 @@ class TestWorstApi(object):
         return request.param
 
     @pytest.fixture(scope="function", params=[
-        ("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
+        Employee("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
     ])
     def user_obj_create_valid_args(self, request, setup_db_worker):
         yield request.param
         self.del_employee(request.param, setup_db_worker)
 
     @pytest.fixture(scope="function", params=[
-        ("Hell", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        ("Mau", "Motor", "ma88@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        ("Mau", "Hardy", "targ@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        ("Mau", "Hardy", "ma8888@mail.ru", "7-999-333-00-00", "PU_MAN", 3000, 30),
-        ("Mau", "Hardy", "ma88888@mail.ru", "7-999-777-66-77", "FI_MGR", 3000, 30),
-        ("Mau", "Hardy", "ma88888888@mail.ru", "7-999-777-66-77", "PU_MAN", 5000, 30),
-        ("Mau", "Hardy", "ma8@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 10)
+        Employee("Hell", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
+        Employee("Mau", "Motor", "ma88@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
+        Employee("Mau", "Hardy", "targ@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
+        Employee("Mau", "Hardy", "ma8888@mail.ru", "7-999-333-00-00", "PU_MAN", 3000, 30),
+        Employee("Mau", "Hardy", "ma88888@mail.ru", "7-999-777-66-77", "FI_MGR", 3000, 30),
+        Employee("Mau", "Hardy", "ma88888888@mail.ru", "7-999-777-66-77", "PU_MAN", 5000, 30),
+        Employee("Mau", "Hardy", "ma8@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 10)
     ])
     def user_obj_update_args(self, request, setup_db_worker):
         yield request.param
 
     @pytest.fixture(scope="function", params=[
-        ("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
+        Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
     ])
     def user_obj_delete_valid_args(self, request, setup_db_worker):
         db_worker = setup_db_worker
-        (name, surname, email, phone, job, salary, dep_id) = request.param
+        emp = request.param
 
         emp_id = db_worker.select_sequence_element("employees_seq")
-        json_cont = {
-            "employee_id": emp_id,
-            "first_name": name,
-            "last_name": surname,
-            "email": email,
-            "phone_number": phone,
-            "hire_date": date.today(),
-            "job_id": job,
-            "salary": salary,
-            "department_id": dep_id
-        }
-        db_worker.insert_into_table(self.EMPLOYEE_TABLE_NAME, json_cont)
+        db_worker.insert_into_table(self.EMPLOYEE_TABLE_NAME, emp.get_employee_json_with_id(emp_id))
         yield emp_id
         db_worker.delete_from_table_with_unique(self.JOB_HISTORY_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, emp_id)
         db_worker.delete_from_table_with_unique(self.EMPLOYEE_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, emp_id)
 
     @pytest.fixture(scope="function", params=[
-        ("Mau", "Hardy", "some.mail", "7-999-777-66-77", "PU_MAN", 3000, "some"),
-        ("Mau", "Hardy", "3mail", "7-999-777-66-77", "some", 3000, 30),
-        (9, "Hardy", "2mail", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        ("Mau", 10, "1mail", "7-999-777-66-77", "PU_MAN", 3000, 30),
-        ("Mau", "Hardy", 4, "7-999-777-66-77", "PU_MAN", 3000, 30),
-        ("Mau", "Hardy", "11mail", "some_phone", "PU_MAN", 3000, 30),
-        ("Mau", "Hardy", "22mail", "7-999-777-66-77", "PU_MAN", "some_salary", 30),
+        Employee("Mau", "Hardy", "some.mail", "7-999-777-66-77", "PU_MAN", 3000, "some"),
+        Employee("Mau", "Hardy", "3mail", "7-999-777-66-77", "some", 3000, 30),
+        Employee(9, "Hardy", "2mail", "7-999-777-66-77", "PU_MAN", 3000, 30),
+        Employee("Mau", 10, "1mail", "7-999-777-66-77", "PU_MAN", 3000, 30),
+        Employee("Mau", "Hardy", 4, "7-999-777-66-77", "PU_MAN", 3000, 30),
+        Employee("Mau", "Hardy", "11mail", "some_phone", "PU_MAN", 3000, 30),
+        Employee("Mau", "Hardy", "22mail", "7-999-777-66-77", "PU_MAN", "some_salary", 30),
     ])
     def user_obj_create_invalid_args(self, request, setup_db_worker):
         yield request.param
         self.del_employee(request.param, setup_db_worker)
 
     def del_employee(self, fixt_with_param, setup_db_worker):
-        (name, surname, email, phone, job, salary, dep_id) = fixt_with_param
+        emp = fixt_with_param
         db_worker = setup_db_worker
-        json_cont = {
-            "first_name": name,
-            "last_name": surname,
-            "email": email,
-            "phone_number": phone,
-            "job_id": job,
-            "salary": salary,
-            "department_id": dep_id
-        }
-        db_worker.delete_from_table(self.EMPLOYEE_TABLE_NAME, json_cont)
+        db_worker.delete_from_table(self.EMPLOYEE_TABLE_NAME, emp.get_employee_json_without_id())
 
     def test_req_public_key_success(self, setup_api_worker):
         api_worker = setup_api_worker
@@ -233,58 +212,44 @@ class TestWorstApi(object):
 
     def test_create_employees_accepted(self, user_obj_create_valid_args, valid_private_key, setup_api_worker,
                                        setup_db_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_create_valid_args
+        emp = user_obj_create_valid_args
         private_key = valid_private_key
         api_worker = setup_api_worker
 
-        resp = api_worker.request_create_employees(private_key, name, surname, email, phone, job, salary,
-                                                   dep_id)
-        json_cont = {
-            "first_name": name,
-            "last_name": surname,
-            "email": email,
-            "phone_number": phone,
-            "job_id": job,
-            "salary": salary,
-            "department_id": dep_id
-        }
+        resp = api_worker.request_create_employees(private_key, emp)
         db_worker = setup_db_worker
-        selected_value = db_worker.select_row_from_table(self.EMPLOYEE_TABLE_NAME, json_cont)
+        selected_value = db_worker.select_row_from_table(self.EMPLOYEE_TABLE_NAME, emp.get_employee_json_without_id())
         assert resp.status_code == HttpResponseData.ACCEPTED_CODE and selected_value != [] \
                and len(selected_value) == 1, "Invalid create new employees"
 
     def test_create_employees_invalid_key(self, invalid_key_args, user_obj_create_valid_args, setup_api_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_create_valid_args
+        emp = user_obj_create_valid_args
         invalid_key = invalid_key_args
         api_worker = setup_api_worker
 
-        resp = api_worker.request_create_employees(invalid_key, name, surname, email, phone, job, salary,
-                                                   dep_id)
+        resp = api_worker.request_create_employees(invalid_key, emp)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid create new employees"
 
-    @pytest.mark.parametrize("sec_name, sec_surname, sec_phone, sec_job, sec_salary, sec_dep_id", [
-        ("Mau", "Hardy", "7-999-777-66-77", "PU_MAN", 3000, 30)
+    @pytest.mark.parametrize("sec_emp", [
+        Employee("Mau", "Hardy", "some", "7-999-777-66-77", "PU_MAN", 3000, 30)
     ])
-    def test_create_employees_existing_email(self, sec_name, sec_surname, sec_phone, sec_job, sec_salary, sec_dep_id,
+    def test_create_employees_existing_email(self, sec_emp,
                                              user_obj_create_valid_args, valid_private_key, setup_api_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_create_valid_args
+        emp = user_obj_create_valid_args
         private_key = valid_private_key
         api_worker = setup_api_worker
 
-        resp = api_worker.request_create_employees(private_key, name, surname, email, phone, job, salary,
-                                                   dep_id)
-        resp = api_worker.request_create_employees(private_key, sec_name, sec_surname, email, sec_phone, sec_job,
-                                                   sec_salary,
-                                                   sec_dep_id)
+        sec_emp.email = emp.email
+        resp = api_worker.request_create_employees(private_key, emp)
+        resp = api_worker.request_create_employees(private_key, sec_emp)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid create new employees"
 
     def test_create_employees_invalid_args(self, user_obj_create_invalid_args, valid_private_key, setup_api_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_create_invalid_args
+        emp = user_obj_create_invalid_args
         private_key = valid_private_key
         api_worker = setup_api_worker
 
-        resp = api_worker.request_create_employees(private_key, name, surname, email, phone, job, salary,
-                                                   dep_id)
+        resp = api_worker.request_create_employees(private_key, emp)
         resp_str = str(resp)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid create new employees with " \
                                                                                 "invalid args"
@@ -323,62 +288,49 @@ class TestWorstApi(object):
 
     def test_update_employees_invalid_key(self, user_obj_update_args, user_obj_delete_valid_args, invalid_key_args,
                                           valid_private_key, setup_api_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_update_args
+        emp = user_obj_update_args
         login_fact = valid_private_key
         invalid_key = invalid_key_args
         api_worker = setup_api_worker
         emp_id = user_obj_delete_valid_args
 
-        resp = api_worker.request_update_employees(invalid_key, name, surname, email, phone, job, salary,
-                                                   dep_id, emp_id)
+        resp = api_worker.request_update_employees(invalid_key, emp, emp_id)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid update employees"
 
     def test_update_employees_employee_not_exists(self, user_obj_update_args, user_obj_delete_valid_args,
                                                   valid_private_key, setup_api_worker,
                                                   setup_db_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_update_args
+        emp = user_obj_update_args
         private_key = valid_private_key
         api_worker = setup_api_worker
-        user_id = user_obj_delete_valid_args
+        emp_id = user_obj_delete_valid_args
 
         db_worker = setup_db_worker
-        db_worker.delete_from_table_with_unique(self.EMPLOYEE_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, user_id)
-        resp = api_worker.request_update_employees(private_key, name, surname, email, phone, job, salary,
-                                                   dep_id, user_id)
+        db_worker.delete_from_table_with_unique(self.EMPLOYEE_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, emp_id)
+        resp = api_worker.request_update_employees(private_key, emp, emp_id)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid update employees"
 
     def test_update_employees_success(self, user_obj_delete_valid_args, user_obj_update_args, valid_private_key,
                                       setup_api_worker, setup_db_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_update_args
+        emp = user_obj_update_args
         private_key = valid_private_key
         emp_id = user_obj_delete_valid_args
         api_worker = setup_api_worker
 
-        resp = api_worker.request_update_employees(private_key, name, surname, email, phone, job, salary,
-                                                   dep_id, emp_id)
-        json_cont = {
-            "first_name": name,
-            "last_name": surname,
-            "email": email,
-            "phone_number": phone,
-            "job_id": job,
-            "salary": salary,
-            "department_id": dep_id
-        }
+        resp = api_worker.request_update_employees(private_key, emp, emp_id)
         db_worker = setup_db_worker
-        selected_value = db_worker.select_row_from_table(self.EMPLOYEE_TABLE_NAME, json_cont)
+        selected_value = db_worker.select_row_from_table(self.EMPLOYEE_TABLE_NAME, emp.get_employee_json_without_id())
         assert resp.status_code == HttpResponseData.ACCEPTED_CODE and selected_value != [] \
                and len(selected_value) == 1, "Invalid update employees"
 
     def test_update_employees_develop_user_key(self, user_obj_delete_valid_args, user_obj_update_args, user_key,
                                                setup_api_worker, setup_db_worker):
-        (name, surname, email, phone, job, salary, dep_id) = user_obj_update_args
+        emp = user_obj_update_args
         private_key = user_key
         emp_id = user_obj_delete_valid_args
         api_worker = setup_api_worker
 
-        resp = api_worker.request_update_employees(private_key, name, surname, email, phone, job, salary,
-                                                   dep_id, emp_id)
+        resp = api_worker.request_update_employees(private_key, emp, emp_id)
         assert resp.status_code == HttpResponseData.UNAUTHORIZED_CODE, "Invalid update employees"
 
     def test_get_employee_history_success(self, valid_private_key, setup_api_worker):

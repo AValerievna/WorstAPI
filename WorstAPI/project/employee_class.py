@@ -2,6 +2,16 @@ from datetime import date
 
 
 class Employee(object):
+    HIRE_DATE_FIELD = "hire_date"
+    EMPLOYEE_ID_FIELD = "employee_id"
+    DEPARTMENT_ID_FIELD = "department_id"
+    SALARY_FIELD = "salary"
+    JOB_ID_FIELD = "job_id"
+    PHONE_NUMBER_FIELD = "phone_number"
+    EMAIL_FIELD = "email"
+    LAST_NAME_FIELD = "last_name"
+    FIRST_NAME_FIELD = "first_name"
+
     def __init__(self, name, surname, email, phone, job, salary, dep_id):
         self.name = name
         self.surname = surname
@@ -13,26 +23,26 @@ class Employee(object):
 
     def get_employee_json_without_id(self):
         return {
-            "first_name": self.name,
-            "last_name": self.surname,
-            "email": self.email,
-            "phone_number": self.phone,
-            "job_id": self.job,
-            "salary": self.salary,
-            "department_id": self.dep_id
+            self.FIRST_NAME_FIELD: self.name,
+            self.LAST_NAME_FIELD: self.surname,
+            self.EMAIL_FIELD: self.email,
+            self.PHONE_NUMBER_FIELD: self.phone,
+            self.JOB_ID_FIELD: self.job,
+            self.SALARY_FIELD: self.salary,
+            self.DEPARTMENT_ID_FIELD: self.dep_id
         }
 
     def get_employee_json_with_id(self, emp_id):
         return {
-            "employee_id": emp_id,
-            "first_name": self.name,
-            "last_name": self.surname,
-            "email": self.email,
-            "phone_number": self.phone,
-            "hire_date": date.today(),
-            "job_id": self.job,
-            "salary": self.salary,
-            "department_id": self.dep_id
+            self.EMPLOYEE_ID_FIELD: emp_id,
+            self.FIRST_NAME_FIELD: self.name,
+            self.LAST_NAME_FIELD: self.surname,
+            self.EMAIL_FIELD: self.email,
+            self.PHONE_NUMBER_FIELD: self.phone,
+            self.HIRE_DATE_FIELD: date.today(),
+            self.JOB_ID_FIELD: self.job,
+            self.SALARY_FIELD: self.salary,
+            self.DEPARTMENT_ID_FIELD: self.dep_id
         }
 
     def get_employee_data_array(self):
