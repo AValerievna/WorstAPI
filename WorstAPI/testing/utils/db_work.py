@@ -1,21 +1,10 @@
-#
-# dsn = cx_Oracle.makedsn("localhost", 1521, service_name="xe")
-# conn = cx_Oracle.connect(user="HR", password="qwaszx12", dsn=dsn)
-# print("Kek")
-# print(conn.version)
-# conn.close()
+
 from datetime import date
 
 import cx_Oracle
 
 
-# import psycopg2
-
-
 class DBWork(object):
-    # def __init__(self, user, password, host, port, db):
-    #     self._conn = psycopg2.connect(user=user, password=password, host=host, port=port, database=db)
-
     def __init__(self, user, password, host, port, db):
         dsn = cx_Oracle.makedsn(host, port, service_name=db)
         self._conn = cx_Oracle.connect(user=user, password=password, dsn=dsn)
@@ -76,7 +65,6 @@ class DBWork(object):
         cur = self._conn.cursor()
         select_query = "select %s from %s" % (single_colon_name, table_name)
         cur.execute(select_query)
-        print(cur)
         res = DBWork.get_result_from_cursor(cur)
         cur.close()
         return res
@@ -145,49 +133,8 @@ class DBWork(object):
         for row in all_rows_content:
             table_str = dict()
             for i in range(len(description)):
-                # print(description[i][0])
-                # table_str.update({description[i].name: row[i]})
                 table_str.update({description[i][0]: row[i]})
             res.append(table_str)
         return res
 
 
-# with DBWork("hr", "qwaszx12", "localhost", 5432, "hr_db") as dbw:
-
-
-# #with DBWork("HR", "qwaszx12", "localhost", 1521, "xe") as dbw:
-#     d = dbw.select_all_from_table('employees')
-#     #dbw.insert_into_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
-#     dbw.select_row_from_table('countries', {'country_id': 'OO', 'country_name': 'YYYY', 'region_id': 1})
-#     dbw.delete_from_table('employees', {"first_name": "Luis",
-#                                         "last_name": "Hardy",
-#                                         "email": "someeee@mail.ru",
-#                                         "phone_number": "7-999-777-66-77",
-#                                         "job_id": "PU_MAN",
-#                                         "salary": 3000,
-#                                         "department_id": 30})
-#     print(d)
-#     f = dbw.select_all_from_table('employees')
-#     print(f)
-
-dbw = DBWork("HR", "qwaszx12", "localhost", 1521, "xe")
-# #dbw.delete_from_table_with_unique("employees", "email", "some@mail.ru")
-
-emp_id = dbw.select_sequence_element("employees_seq")
-json_cont = {
-    "employee_id": emp_id,
-    "first_name": "Pop",
-    "last_name": "Drop",
-    "email": "skinny@mai;.ru",
-    "phone_number": "00-00",
-    "hire_date": date.today(),
-    "job_id": "PU_MAN",
-    "salary": 666,
-    "department_id": 10
-}
-# dbw.insert_into_table("employees", json_cont)
-dbw.delete_from_table_with_unique("job_history", "EMPLOYEE_ID", "1015")
-dbw.delete_from_table_with_unique("employees", "EMPLOYEE_ID", "1015")
-# print(dbw.select_sequence_element("employees_seq"))
-# print(dbw.select_all_from_table('job_history'))
-print(dbw.select_all_from_table('employees'))

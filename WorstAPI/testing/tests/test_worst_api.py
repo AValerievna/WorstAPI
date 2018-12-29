@@ -1,6 +1,7 @@
 from datetime import date
 
 import pytest
+from hamcrest import *
 
 from project.api import APIWork
 from project.http_response_data_class import HttpResponseData
@@ -11,6 +12,21 @@ class TestWorstApi(object):
     PUBLIC_KEY_LENGTH = 36
     PRIVATE_KEY_LENGTH = 64
     DEVELOPER_KEY_LENGTH = 76
+    EMPLOYEE_TABLE_NAME = "employees"
+    JOB_ID_KEY = "job_id"
+    SALARY_KEY = "salary"
+    HIRE_DATE_KEY = "hire_date"
+    PHONE_KEY = "phone"
+    EMAIL_KEY = "email"
+    SURNAME_KEY = "surname"
+    NAME_KEY = "name"
+    DEVELOPER_NAME = "developer"
+    EMPLOYEE_ID_COLON_NAME = "employee_id"
+    JOB_HISTORY_TABLE_NAME = "job_history"
+    START_DATE_KEY = "start_date"
+    ID_KEY = "id"
+    DEP_ID_KEY = "dep_id"
+    DATE_KEY = "end_date"
 
     @pytest.fixture(scope="class", params=[
         ("localhost", 8081, "worst-api")
@@ -88,7 +104,7 @@ class TestWorstApi(object):
         yield request.param
 
     @pytest.fixture(scope="function", params=[
-        ("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
+        ("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
     ])
     def user_obj_delete_valid_args(self, request, setup_db_worker):
         db_worker = setup_db_worker
@@ -106,10 +122,10 @@ class TestWorstApi(object):
             "salary": salary,
             "department_id": dep_id
         }
-        db_worker.insert_into_table("employees", json_cont)
+        db_worker.insert_into_table(self.EMPLOYEE_TABLE_NAME, json_cont)
         yield emp_id
-        db_worker.delete_from_table_with_unique("job_history", "employee_id", emp_id)
-        db_worker.delete_from_table_with_unique("employees", "employee_id", emp_id)
+        db_worker.delete_from_table_with_unique(self.JOB_HISTORY_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, emp_id)
+        db_worker.delete_from_table_with_unique(self.EMPLOYEE_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, emp_id)
 
     @pytest.fixture(scope="function", params=[
         ("Mau", "Hardy", "some.mail", "7-999-777-66-77", "PU_MAN", 3000, "some"),
@@ -124,8 +140,7 @@ class TestWorstApi(object):
         yield request.param
         self.del_employee(request.param, setup_db_worker)
 
-    @staticmethod
-    def del_employee(fixt_with_param, setup_db_worker):
+    def del_employee(self, fixt_with_param, setup_db_worker):
         (name, surname, email, phone, job, salary, dep_id) = fixt_with_param
         db_worker = setup_db_worker
         json_cont = {
@@ -137,7 +152,7 @@ class TestWorstApi(object):
             "salary": salary,
             "department_id": dep_id
         }
-        db_worker.delete_from_table("employees", json_cont)
+        db_worker.delete_from_table(self.EMPLOYEE_TABLE_NAME, json_cont)
 
     def test_req_public_key_success(self, setup_api_worker):
         api_worker = setup_api_worker
@@ -162,7 +177,7 @@ class TestWorstApi(object):
         private_key = resp.text
         assert ((resp.status_code == HttpResponseData.SUCCESS_CODE
                  and len(private_key) == self.DEVELOPER_KEY_LENGTH
-                 and username == "developer"
+                 and username == self.DEVELOPER_NAME
                  or len(private_key) == self.PRIVATE_KEY_LENGTH)
                 or (resp.status_code == HttpResponseData.UNAUTHORIZED_CODE
                     and resp.status_code == HttpResponseData.UNAUTHORIZED_TEXT)), "Invalid login method"
@@ -202,15 +217,12 @@ class TestWorstApi(object):
 
         resp = api_worker.request_all_employees(private_key)
         resp_json_arr = resp.json()
+
         for json_obj in resp_json_arr:
-            assert resp.status_code == HttpResponseData.SUCCESS_CODE \
-                   and "surname" in json_obj \
-                   and "phone" in json_obj \
-                   and "job_id" in json_obj \
-                   and "name" in json_obj \
-                   and "hire_date" in json_obj \
-                   and "salary" in json_obj \
-                   and "email" in json_obj, "Invalid get_all_employees"
+            assert_that(json_obj, all_of(has_key(self.NAME_KEY), has_key(self.SURNAME_KEY), has_key(self.EMAIL_KEY),
+                                         has_key(self.PHONE_KEY), has_key(self.HIRE_DATE_KEY), has_key(self.SALARY_KEY),
+                                         has_key(self.JOB_ID_KEY)))
+            assert resp.status_code == HttpResponseData.SUCCESS_CODE, "Invalid get all employees"
 
     def test_get_all_employees_invalid_key(self, invalid_key_args, setup_api_worker):
         invalid_key = invalid_key_args
@@ -237,7 +249,7 @@ class TestWorstApi(object):
             "department_id": dep_id
         }
         db_worker = setup_db_worker
-        selected_value = db_worker.select_row_from_table("employees", json_cont)
+        selected_value = db_worker.select_row_from_table(self.EMPLOYEE_TABLE_NAME, json_cont)
         assert resp.status_code == HttpResponseData.ACCEPTED_CODE and selected_value != [] \
                and len(selected_value) == 1, "Invalid create new employees"
 
@@ -274,7 +286,6 @@ class TestWorstApi(object):
         resp = api_worker.request_create_employees(private_key, name, surname, email, phone, job, salary,
                                                    dep_id)
         resp_str = str(resp)
-        print(resp_str)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid create new employees with " \
                                                                                 "invalid args"
 
@@ -296,7 +307,7 @@ class TestWorstApi(object):
         user_id = user_obj_delete_valid_args
 
         db_worker = setup_db_worker
-        db_worker.delete_from_table_with_unique("employees", "employee_id", user_id)
+        db_worker.delete_from_table_with_unique(self.EMPLOYEE_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, user_id)
         resp = api_worker.request_delete_employees(private_key, user_id)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid delete employees"
 
@@ -331,7 +342,7 @@ class TestWorstApi(object):
         user_id = user_obj_delete_valid_args
 
         db_worker = setup_db_worker
-        db_worker.delete_from_table_with_unique("employees", "employee_id", user_id)
+        db_worker.delete_from_table_with_unique(self.EMPLOYEE_TABLE_NAME, self.EMPLOYEE_ID_COLON_NAME, user_id)
         resp = api_worker.request_update_employees(private_key, name, surname, email, phone, job, salary,
                                                    dep_id, user_id)
         assert resp.status_code == HttpResponseData.INTERVAL_SERVER_ERROR_CODE, "Invalid update employees"
@@ -355,8 +366,7 @@ class TestWorstApi(object):
             "department_id": dep_id
         }
         db_worker = setup_db_worker
-        selected_value = db_worker.select_row_from_table("employees", json_cont)
-        print(selected_value)
+        selected_value = db_worker.select_row_from_table(self.EMPLOYEE_TABLE_NAME, json_cont)
         assert resp.status_code == HttpResponseData.ACCEPTED_CODE and selected_value != [] \
                and len(selected_value) == 1, "Invalid update employees"
 
@@ -378,12 +388,9 @@ class TestWorstApi(object):
         resp = api_worker.request_get_employees_history(private_key)
         resp_json_arr = resp.json()
         for json_obj in resp_json_arr:
-            assert resp.status_code == HttpResponseData.SUCCESS_CODE \
-                   and "end_date" in json_obj \
-                   and "dep_id" in json_obj \
-                   and "job_id" in json_obj \
-                   and "id" in json_obj \
-                   and "start_date" in json_obj, "Invalid get employee history"
+            assert_that(json_obj, all_of(has_key(self.DATE_KEY), has_key(self.DEP_ID_KEY), has_key(self.JOB_ID_KEY),
+                                         has_key(self.ID_KEY), has_key(self.START_DATE_KEY)))
+            assert resp.status_code == HttpResponseData.SUCCESS_CODE, "Invalid get employee history"
 
     def test_get_employee_history_user_key(self, user_key, setup_api_worker):
         private_key = user_key

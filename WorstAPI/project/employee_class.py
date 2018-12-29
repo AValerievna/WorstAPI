@@ -11,7 +11,7 @@ class Employee(object):
         self.salary = salary
         self.dep_id = dep_id
 
-    def get_employee_json(self):
+    def get_employee_json_without_id(self):
         return {
             "first_name": self.name,
             "last_name": self.surname,
@@ -22,7 +22,7 @@ class Employee(object):
             "department_id": self.dep_id
         }
 
-    def get_employee_json(self, emp_id):
+    def get_employee_json_with_id(self, emp_id):
         return {
             "employee_id": emp_id,
             "first_name": self.name,
@@ -34,3 +34,6 @@ class Employee(object):
             "salary": self.salary,
             "department_id": self.dep_id
         }
+
+    def get_employee_data_array(self):
+        return [self.name, self.surname, self.email, self.phone, self.job, self.salary, self.dep_id]
