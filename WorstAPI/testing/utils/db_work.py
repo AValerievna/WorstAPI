@@ -8,22 +8,21 @@ class DBWork(object):
     def __init__(self, user, password, host, port, db):
         dsn = cx_Oracle.makedsn(host, port, service_name=db)
         self._conn = cx_Oracle.connect(user=user, password=password, dsn=dsn)
+        self._cur = self._conn.cursor()
 
     def __enter__(self):
         return self
 
     def close_conn(self):
+        self._cur.close()
         self._conn.close()
 
     def select_all_from_table(self, table_name):
-        cur = self._conn.cursor()
-        cur.execute("select * from %s" % table_name)
-        res = self.get_result_from_cursor(cur)
-        cur.close()
+        self._cur.execute("select * from %s" % table_name)
+        res = self.get_result_from_cursor(self._cur)
         return res
 
     def select_row_from_table(self, table_name, to_select_dict):
-        cur = self._conn.cursor()
         select_query = "select * from %s where " % table_name
         counter = 0
         for i in to_select_dict:
@@ -32,22 +31,18 @@ class DBWork(object):
             if counter != len(to_select_dict) - 1:
                 select_query += " and "
             counter += 1
-        cur.execute(select_query)
-        res = DBWork.get_result_from_cursor(cur)
-        cur.close()
+        self._cur.execute(select_query)
+        res = DBWork.get_result_from_cursor(self._cur)
         return res
 
     def select_row_with_unique_value(self, table_name, unique_value_name, unique_value_value):
-        cur = self._conn.cursor()
         select_query = "select * from %s where %s = %s" % (table_name, unique_value_name,
                                                            self._escape(unique_value_value))
-        cur.execute(select_query)
-        res = DBWork.get_result_from_cursor(cur)
-        cur.close()
+        self._cur.execute(select_query)
+        res = DBWork.get_result_from_cursor(self._cur)
         return res
 
     def select_single_value_from_table(self, table_name, colon_name, to_select_dict):
-        cur = self._conn.cursor()
         select_query = "select %s from %s where " % (colon_name, table_name)
         counter = 0
         for i in to_select_dict:
@@ -56,29 +51,23 @@ class DBWork(object):
             if counter != len(to_select_dict) - 1:
                 select_query += " and "
             counter += 1
-        cur.execute(select_query)
-        res = cur.fetchall()[0][0]
-        cur.close()
+        self._cur.execute(select_query)
+        res = self._cur.fetchall()[0][0]
         return res
 
     def select_single_colon_from_table(self, table_name, single_colon_name):
-        cur = self._conn.cursor()
         select_query = "select %s from %s" % (single_colon_name, table_name)
-        cur.execute(select_query)
-        res = DBWork.get_result_from_cursor(cur)
-        cur.close()
+        self._cur.execute(select_query)
+        res = DBWork.get_result_from_cursor(self._cur)
         return res
 
     def select_sequence_element(self, seq_name):
-        cur = self._conn.cursor()
         select_query = "select %s.nextval from dual" % seq_name
-        cur.execute(select_query)
-        res = cur.fetchall()[0][0]
-        cur.close()
+        self._cur.execute(select_query)
+        res = self._cur.fetchall()[0][0]
         return res
 
     def delete_from_table(self, table_name, to_delete_dict):
-        cur = self._conn.cursor()
         delete_query = "delete from %s where " % table_name
         counter = 0
         for i in to_delete_dict:
@@ -87,19 +76,16 @@ class DBWork(object):
             if counter != len(to_delete_dict) - 1:
                 delete_query += " and "
             counter += 1
-        cur.execute(delete_query)
-        rowcount = cur.rowcount
+        self._cur.execute(delete_query)
+        rowcount = self._cur.rowcount
         self._conn.commit()
-        cur.close()
         return rowcount
 
     def delete_from_table_with_unique(self, table_name, to_delete_unique_colon, to_delete_unique_val, ):
-        cur = self._conn.cursor()
         delete_query = "delete from %s where %s = '%s'" % (table_name, to_delete_unique_colon, to_delete_unique_val)
-        cur.execute(delete_query)
-        rowcount = cur.rowcount
+        self._cur.execute(delete_query)
+        rowcount = self._cur.rowcount
         self._conn.commit()
-        cur.close()
         return rowcount
 
     @staticmethod
@@ -112,17 +98,15 @@ class DBWork(object):
             return "%d" % data
 
     def insert_into_table(self, table_name, to_insert_dict):
-        cur = self._conn.cursor()
         insert_query = "insert into %s (%s) " % (table_name, ', '.join(to_insert_dict.keys()))
         cont = []
         for i in to_insert_dict:
             value = to_insert_dict[i]
             cont.append(self._escape(value))
         insert_query += "values(%s)" % ', '.join(cont)
-        cur.execute(insert_query)
-        rowcount = cur.rowcount
+        self._cur.execute(insert_query)
+        rowcount = self._cur.rowcount
         self._conn.commit()
-        cur.close()
         return rowcount
 
     @staticmethod

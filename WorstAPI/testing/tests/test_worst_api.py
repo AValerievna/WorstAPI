@@ -34,7 +34,7 @@ class TestWorstApi(object):
         (host, port, prefix) = request.param
         return APIWork(host, port, prefix)
 
-    @pytest.fixture(scope="function", params=[
+    @pytest.fixture(scope="class", params=[
         ("HR", "qwaszx12", "localhost", 1521, "xe")
     ])
     def setup_db_worker(self, request):
