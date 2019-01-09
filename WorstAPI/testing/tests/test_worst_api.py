@@ -1,5 +1,5 @@
 import pytest
-from hamcrest import *
+from hamcrest import assert_that, all_of, has_key
 
 from project.api import APIWork
 from project.employee_class import Employee
