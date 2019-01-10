@@ -2,6 +2,7 @@ import pytest
 
 from project.api import APIWork
 from .employee_db_data_class import EmployeeDBData
+from ..utils.common_functions import get_key
 from ..utils.db_work import DBWork
 
 
@@ -9,7 +10,9 @@ from ..utils.db_work import DBWork
     ("localhost", 8081, "worst-api")
 ])
 def setup_api_worker(request):
-    """:return instance to work with API"""
+    """
+    :return instance to work with API
+    """
     (host, port, prefix) = request.param
     return APIWork(host, port, prefix)
 
@@ -18,7 +21,9 @@ def setup_api_worker(request):
     ("HR", "qwaszx12", "localhost", 1521, "xe")
 ])
 def setup_db_worker(request):
-    """:return instance to work with database"""
+    """
+    :return instance to work with database
+    """
     (user, password, host, port, db) = request.param
     db_worker = DBWork(user, password, host, port, db)
     yield db_worker
@@ -27,7 +32,9 @@ def setup_db_worker(request):
 
 @pytest.fixture(scope="function")
 def valid_private_key(user_pwd_args, setup_api_worker):
-    """:return keys of users "developer" and "admin" """
+    """
+    :return keys of users "developer" and "admin"
+    """
     return get_key(user_pwd_args, setup_api_worker)
 
 
@@ -36,7 +43,9 @@ def valid_private_key(user_pwd_args, setup_api_worker):
     ("developer", "developer")
 ])
 def user_pwd_args(request):
-    """:return data of users "developer" and "admin" """
+    """
+    :return data of users "developer" and "admin"
+    """
     return request.param
 
 
@@ -45,7 +54,9 @@ def user_pwd_args(request):
     ("developer", "developer")
 ])
 def user_dev_key(request, setup_api_worker):
-    """:return keys of users "developer" and "user" """
+    """
+    :return keys of users "developer" and "user"
+    """
     return get_key(request.param, setup_api_worker)
 
 
@@ -53,24 +64,17 @@ def user_dev_key(request, setup_api_worker):
     ("user", "user")
 ])
 def user_key(request, setup_api_worker):
-    """ :return key of user "user" """
+    """
+    :return key of user "user"
+    """
     return get_key(request.param, setup_api_worker)
-
-
-def get_key(fixt, setup_api_worker):
-    """:arg fixt  - include user data(username, pwd)"""
-    """:return key of user, noticed in fixt"""
-    (username, password) = fixt
-    api_worker = setup_api_worker
-
-    pub_key = api_worker.request_pubkey().text
-    private_key = api_worker.request_login(username, password, pub_key).text
-    return private_key
 
 
 @pytest.fixture(scope="function")
 def del_emp_after_test(setup_db_worker):
-    """delete employee from arg "emp" after the test"""
+    """
+    delete employee from arg "emp" after the test
+    """
     emp_to_del = []
 
     def save(emp):
@@ -84,8 +88,10 @@ def del_emp_after_test(setup_db_worker):
 
 @pytest.fixture(scope="function")
 def create_and_del_employee(setup_db_worker):
-    """create employee from arg "emp" before the test delete it after the test"""
-    """ :return created employee id"""
+    """
+    create employee from arg "emp" before the test delete it after the test
+    :return created employee id
+    """
     emps_to_del = []
     db_worker = setup_db_worker
 
