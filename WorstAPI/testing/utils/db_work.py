@@ -120,5 +120,3 @@ class DBWork(object):
                 table_str.update({description[i][0]: row[i]})
             res.append(table_str)
         return res
-
-
