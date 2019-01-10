@@ -1,10 +1,10 @@
 import pytest
 from hamcrest import assert_that, all_of, has_key, equal_to, has_length, is_not, empty
 
-from project.api import APIWork
-from project.employee_class import Employee
-from project.http_response_data_class import HttpResponseData
-from testing.utils.db_work import DBWork
+from project import APIWork
+from project import Employee
+from project import HttpResponseData
+from testing import DBWork
 
 
 class TestWorstApi(object):
