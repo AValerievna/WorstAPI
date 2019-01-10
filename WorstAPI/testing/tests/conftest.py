@@ -1,7 +1,7 @@
 import pytest
 
-from project import APIWork
-from . import EmployeeDBData
+from project.api import APIWork
+from .employee_db_data_class import EmployeeDBData
 from ..utils.db_work import DBWork
 
 
@@ -58,14 +58,6 @@ def get_key(fixt, setup_api_worker):
     pub_key = api_worker.request_pubkey().text
     private_key = api_worker.request_login(username, password, pub_key).text
     return private_key
-
-
-@pytest.fixture(scope="function", params=[
-    "key",
-    "very-bad-key"
-])
-def invalid_key_args(request):
-    return request.param
 
 
 @pytest.fixture(scope="function")

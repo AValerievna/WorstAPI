@@ -1,8 +1,9 @@
 import pytest
 from hamcrest import assert_that, all_of, has_key, equal_to, has_length, is_not, empty
 
-from project import Employee, HttpResponseData
-from . import EmployeeDBData
+from project.employee_class import Employee
+from project.http_response_data_class import HttpResponseData
+from .employee_db_data_class import EmployeeDBData
 
 
 class TestWorstApi(object):
@@ -39,8 +40,11 @@ class TestWorstApi(object):
             assert_that(resp.status_code, equal_to(HttpResponseData.UNAUTHORIZED_CODE), "Invalid login method")
             assert_that(private_key, equal_to(HttpResponseData.UNAUTHORIZED_TEXT), "Invalid login method")
 
-    def test_login_invalid_key(self, invalid_key_args, user_pwd_args, setup_api_worker):
-        invalid_key = invalid_key_args
+    @pytest.mark.parametrize("invalid_key", [
+        "key",
+        "very-bad-key"
+    ])
+    def test_login_invalid_key(self, invalid_key, user_pwd_args, setup_api_worker):
         (username, password) = user_pwd_args
         api_worker = setup_api_worker
 
@@ -84,8 +88,11 @@ class TestWorstApi(object):
                                          has_key(EmployeeDBData.JOB_ID_KEY)), "Invalid get all employees")
             assert_that(resp.status_code, equal_to(HttpResponseData.SUCCESS_CODE), "Invalid get all employees")
 
-    def test_get_all_employees_invalid_key(self, invalid_key_args, setup_api_worker):
-        invalid_key = invalid_key_args
+    @pytest.mark.parametrize("invalid_key", [
+        "key",
+        "very-bad-key"
+    ])
+    def test_get_all_employees_invalid_key(self, invalid_key, setup_api_worker):
         api_worker = setup_api_worker
 
         resp = api_worker.request_all_employees(invalid_key)
@@ -109,11 +116,10 @@ class TestWorstApi(object):
         assert_that(selected_value, has_length(1), "Invalid create new employees")
         del_emp_after_test(emp)
 
-    @pytest.mark.parametrize("emp", [
-        Employee("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
+    @pytest.mark.parametrize("emp,invalid_key", [
+        (Employee("Mau", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30), "some_key")
     ])
-    def test_create_employees_invalid_key(self, emp, invalid_key_args, del_emp_after_test, setup_api_worker):
-        invalid_key = invalid_key_args
+    def test_create_employees_invalid_key(self, emp, invalid_key, del_emp_after_test, setup_api_worker):
         api_worker = setup_api_worker
 
         resp = api_worker.request_create_employees(invalid_key, emp)
@@ -155,13 +161,12 @@ class TestWorstApi(object):
                     "Invalid create new employees with invalid args")
         del_emp_after_test(emp)
 
-    @pytest.mark.parametrize("emp", [
-        Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)
+    @pytest.mark.parametrize("emp,invalid_key", [
+        (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30), "some...key")
     ])
-    def test_delete_employees_invalid_key(self, emp, create_and_del_employee, invalid_key_args, valid_private_key,
+    def test_delete_employees_invalid_key(self, emp, create_and_del_employee, invalid_key, valid_private_key,
                                           setup_api_worker):
         valid_private_key
-        invalid_key = invalid_key_args
         api_worker = setup_api_worker
         emp_id = create_and_del_employee(emp)
 
@@ -198,26 +203,25 @@ class TestWorstApi(object):
         resp = api_worker.request_delete_employees(private_key, emp_id)
         assert_that(resp.status_code, equal_to(HttpResponseData.UNAUTHORIZED_CODE), "Invalid delete employees")
 
-    @pytest.mark.parametrize("emp,sec_emp", [
+    @pytest.mark.parametrize("emp,sec_emp,invalid_key", [
         (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-         Employee("Hell", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)),
+         Employee("Hell", "Hardy", "ma888@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30), "some_key"),
         (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-         Employee("Mau", "Motor", "ma88@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)),
+         Employee("Mau", "Motor", "ma88@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30), "some_key"),
         (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-         Employee("Mau", "Hardy", "targ@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30)),
+         Employee("Mau", "Hardy", "targ@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30), "some_key"),
         (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-         Employee("Mau", "Hardy", "ma8888@mail.ru", "7-999-333-00-00", "PU_MAN", 3000, 30)),
+         Employee("Mau", "Hardy", "ma8888@mail.ru", "7-999-333-00-00", "PU_MAN", 3000, 30), "some_key"),
         (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-         Employee("Mau", "Hardy", "ma88888@mail.ru", "7-999-777-66-77", "FI_MGR", 3000, 30)),
+         Employee("Mau", "Hardy", "ma88888@mail.ru", "7-999-777-66-77", "FI_MGR", 3000, 30), "some_key"),
         (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-         Employee("Mau", "Hardy", "ma88888888@mail.ru", "7-999-777-66-77", "PU_MAN", 5000, 30)),
+         Employee("Mau", "Hardy", "ma88888888@mail.ru", "7-999-777-66-77", "PU_MAN", 5000, 30), "some_key"),
         (Employee("Mau", "Hardy", "ma808@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 30),
-         Employee("Mau", "Hardy", "ma8@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 10))
+         Employee("Mau", "Hardy", "ma8@mail.ru", "7-999-777-66-77", "PU_MAN", 3000, 10), "some_key")
     ])
-    def test_update_employees_invalid_key(self, emp, sec_emp, create_and_del_employee, invalid_key_args,
+    def test_update_employees_invalid_key(self, emp, sec_emp, create_and_del_employee, invalid_key,
                                           valid_private_key, setup_api_worker):
         valid_private_key
-        invalid_key = invalid_key_args
         api_worker = setup_api_worker
         emp_id = create_and_del_employee(emp)
 
@@ -333,9 +337,12 @@ class TestWorstApi(object):
         resp = api_worker.request_logout(private_key)
         assert_that(resp.status_code, equal_to(HttpResponseData.SUCCESS_CODE), "Invalid logout method")
 
-    def test_logout_invalid_key(self, valid_private_key, invalid_key_args, setup_api_worker):
+    @pytest.mark.parametrize("invalid_key", [
+        "key",
+        "very-bad-key"
+    ])
+    def test_logout_invalid_key(self, valid_private_key, invalid_key, setup_api_worker):
         valid_private_key
-        invalid_key = invalid_key_args
         api_worker = setup_api_worker
 
         resp = api_worker.request_logout(invalid_key)
